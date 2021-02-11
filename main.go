@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/v33/github"
+	"github.com/gorilla/mux"
 )
 
 // String is a helper routine that allocates a new string value
@@ -71,37 +75,39 @@ func WriteStatus(client *github.Client, owner, repo, rev, state, jobName string)
 // 	)
 // }
 
-// func eventHandler(w http.ResponseWriter, r *http.Request) {
-// 	payload, err := ioutil.ReadAll(r.Body)
-// 	if err != nil {
-// 		log.Printf("error reading request body: err=%s\n", err)
-// 		return
-// 	}
-// 	defer r.Body.Close()
+func eventHandler(w http.ResponseWriter, r *http.Request) {
+	// Read the request body
+	payload, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	defer r.Body.Close()
 
-// 	event, err := github.ParseWebHook(github.WebHookType(r), payload)
-// 	if err != nil {
-// 		log.Printf("could not parse webhook: err=%s\n", err)
-// 		return
-// 	}
+	// Parse the WebHook payload using go-github
+	event, err := github.ParseWebHook(github.WebHookType(r), payload)
+	if err != nil {
+		panic(err)
+	}
 
-// 	switch event := event.(type) {
-// 	case *github.PushEvent:
-// 		processPR(*event.Commits[0].ID)
-// 	default:
-// 		fmt.Println(event)
-// 		return
-// 	}
-// }
+	switch event := event.(type) {
+	case *github.PullRequestEvent:
+		if action := *event.Action; action != "opened" {
+			return
+		}
 
-// func main() {
-// 	processPR("s")
-// 	router := mux.NewRouter()
+		fmt.Println(event.Installation)
+	default:
+		fmt.Println(event)
+		return
+	}
+}
 
-// 	router.HandleFunc("/event_handler", eventHandler).Methods("POST")
+func main() {
+	router := mux.NewRouter()
+	router.HandleFunc("/event_handler", eventHandler).Methods("POST")
 
-// 	err := http.ListenAndServe(":10000", router)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// }
+	err := http.ListenAndServe(":10000", router)
+	if err != nil {
+		panic(err)
+	}
+}
