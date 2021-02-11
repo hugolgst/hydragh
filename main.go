@@ -121,7 +121,7 @@ func EventHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	router := mux.NewRouter()
-	router.HandleFunc("/event_handler", eventHandler).Methods("POST")
+	router.HandleFunc("/event_handler", EventHandler).Methods("POST")
 
 	err := http.ListenAndServe(":10000", router)
 	if err != nil {
