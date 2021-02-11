@@ -49,6 +49,23 @@ func WriteStatus(client *github.Client, owner, repo, rev, state, jobName string)
 	)
 }
 
+// GetClientFromInstallationID returns the GitHub Client object from the Installation ID
+func GetClientFromInstallationID(id int) *github.Client {
+	appsTransport, err := ghinstallation.NewAppsTransportKeyFromFile(http.DefaultTransport, appID, certPath)
+	if err != nil {
+		panic("Error creating GitHub App client")
+	}
+
+	transport := ghinstallation.NewFromAppsTransport(
+		appsTransport,
+		installationID,
+	)
+
+	return github.NewClient(&http.Client{
+		Transport: transport,
+	})
+}
+
 // func processPR(ID string) {
 // 	atr, err := ghinstallation.NewAppsTransportKeyFromFile(http.DefaultTransport, appID, certPath)
 // 	if err != nil {
@@ -75,7 +92,8 @@ func WriteStatus(client *github.Client, owner, repo, rev, state, jobName string)
 // 	)
 // }
 
-func eventHandler(w http.ResponseWriter, r *http.Request) {
+// EventHandler handles the income of WebHook requests
+func EventHandler(w http.ResponseWriter, r *http.Request) {
 	// Read the request body
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -90,14 +108,13 @@ func eventHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch event := event.(type) {
-	case *github.PullRequestEvent:
-		if action := *event.Action; action != "opened" {
+	case *github.CheckSuiteEvent:
+		if action := *event.Action; action != "requested" {
 			return
 		}
 
 		fmt.Println(event.Installation)
 	default:
-		fmt.Println(event)
 		return
 	}
 }
