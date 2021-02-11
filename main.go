@@ -20,25 +20,43 @@ var (
 	certPath = "/home/hl/Downloads/hydra-github-bot.2021-02-08.private-key.pem"
 )
 
-// Contains all the states descriptions
-var descriptions = map[string]string{
-	"success": "All the jobs were successful.",
-	"pending": "Currently building the jobs...",
-	"failure": "At least one of the jobs failed.",
-	"error":   "Error",
+// Status is a GitHub API status containing a name and a description
+type Status struct {
+	Name        string
+	Description string
 }
+
+// All default status
+var (
+	successStatus = Status{
+		Name:        "success",
+		Description: "All the jobs were successful.",
+	}
+	pendingStatus = Status{
+		Name:        "pending",
+		Description: "Currently building the jobs...",
+	}
+	failureStatus = Status{
+		Name:        "failure",
+		Description: "At least one of the jobs failed.",
+	}
+	errorStatus = Status{
+		Name:        "error",
+		Description: "An error occured.",
+	}
+)
 
 // WriteStatus creates a new status via the provided client on a specific commit of a client's repository
 // The description is automatically written and the target URL is hard-coded.
-func WriteStatus(client *github.Client, owner, repo, rev, state, jobName string) {
+func WriteStatus(client *github.Client, owner, repo, rev, jobName string, status Status) {
 	client.Repositories.CreateStatus(
 		context.TODO(),
 		owner,
 		repo,
 		rev,
 		&github.RepoStatus{
-			State:       String(state),
-			Description: String(descriptions[state]),
+			State:       String(status.Name),
+			Description: String(status.Description),
 			TargetURL:   String("https://hydra.visium.ch"),
 			Context:     String(jobName),
 		},
@@ -91,8 +109,8 @@ func EventHandler(w http.ResponseWriter, r *http.Request) {
 			*event.Repo.Owner.Login,
 			*event.Repo.Name,
 			*event.CheckSuite.HeadSHA,
-			"pending",
-			"test-job",
+			"jobname",
+			successStatus,
 		)
 		fmt.Printf("Status written on %s.", *event.CheckSuite.HeadSHA)
 	}
