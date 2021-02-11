@@ -17,11 +17,7 @@ func String(v string) *string { return &v }
 
 var (
 	appID    = int64(99645) // your app id goes here
-	orgID    = "your organization id"
 	certPath = "/home/hl/Downloads/hydra-github-bot.2021-02-08.private-key.pem"
-
-	installationID int64
-	itr            *ghinstallation.Transport
 )
 
 // Contains all the states descriptions
@@ -50,7 +46,7 @@ func WriteStatus(client *github.Client, owner, repo, rev, state, jobName string)
 }
 
 // GetClientFromInstallationID returns the GitHub Client object from the Installation ID
-func GetClientFromInstallationID(id int) *github.Client {
+func GetClientFromInstallationID(id int64) *github.Client {
 	appsTransport, err := ghinstallation.NewAppsTransportKeyFromFile(http.DefaultTransport, appID, certPath)
 	if err != nil {
 		panic("Error creating GitHub App client")
@@ -58,39 +54,13 @@ func GetClientFromInstallationID(id int) *github.Client {
 
 	transport := ghinstallation.NewFromAppsTransport(
 		appsTransport,
-		installationID,
+		id,
 	)
 
 	return github.NewClient(&http.Client{
 		Transport: transport,
 	})
 }
-
-// func processPR(ID string) {
-// 	atr, err := ghinstallation.NewAppsTransportKeyFromFile(http.DefaultTransport, appID, certPath)
-// 	if err != nil {
-// 		log.Fatal("error creating GitHub app client")
-// 	}
-
-// 	installation, _, err := github.NewClient(&http.Client{Transport: atr}).Apps.FindUserInstallation(context.TODO(), "hugolgst")
-// 	if err != nil {
-// 		log.Fatalf("error finding organization installation: %v", err)
-// 	}
-
-// 	installationID = installation.GetID()
-// 	itr = ghinstallation.NewFromAppsTransport(atr, installationID)
-
-// 	client := github.NewClient(&http.Client{Transport: itr})
-
-// 	WriteStatus(
-// 		client,
-// 		"hugolgst",
-// 		"github-hydra-bot",
-// 		"6193b434b0bb87427a267785e8cfbc6e3f90759e",
-// 		"failure",
-// 		"vinixos/overlay",
-// 	)
-// }
 
 // EventHandler handles the income of WebHook requests
 func EventHandler(w http.ResponseWriter, r *http.Request) {
@@ -113,9 +83,18 @@ func EventHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		fmt.Println(event.Installation)
-	default:
-		return
+		// Get Client from the WebHook installation
+		client := GetClientFromInstallationID(event.Installation.GetID())
+		// Write the status to the Repository retrieved from the Webhook
+		WriteStatus(
+			client,
+			*event.Repo.Owner.Login,
+			*event.Repo.Name,
+			*event.CheckSuite.HeadSHA,
+			"pending",
+			"test-job",
+		)
+		fmt.Printf("Status written on %s.", *event.CheckSuite.HeadSHA)
 	}
 }
 
