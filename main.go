@@ -35,16 +35,38 @@ func EventHandler(w http.ResponseWriter, r *http.Request) {
 		// Get Client from the WebHook installation
 		client := botGithub.GetClientFromInstallationID(event.Installation.GetID())
 
+		jobset := fmt.Sprintf("checkers-%s", (*event.CheckSuite.HeadSHA)[0:6])
 		client.WriteStatus(
 			*event.Repo.Owner.Login,
 			*event.Repo.Name,
 			*event.CheckSuite.HeadSHA,
-			"checkers",
+			jobset,
 			botGithub.PendingStatus,
 		)
 
+		hydra.CreateJobset("test", jobset, `{
+			"emailoverride" : "",
+			"enabled" : 1,
+			"errormsg" : "",
+			"fetcherrormsg" : null,
+			"jobsetinputs" : {
+					"nixpkgs" : {
+						"jobsetinputalts" : [
+								"git@github.com:NixOS/nixpkgs nixos-20.09"
+						]
+					},
+					"vinixos" : {
+						"jobsetinputalts" : [
+								"git@github.com:VisiumCH/vinixos.git main"
+						]
+					}
+			},
+			"nixexprinput" : "vinixos",
+			"nixexprpath" : "hydra/checkers.nix"
+		}`)
+
 		status := make(chan botGithub.Status)
-		hydra.WaitForStatus(&status, "test", "checkers")
+		hydra.WaitForStatus(&status, "test", jobset)
 
 		responseStatus := <-status
 		fmt.Println(responseStatus)
@@ -53,7 +75,7 @@ func EventHandler(w http.ResponseWriter, r *http.Request) {
 			*event.Repo.Owner.Login,
 			*event.Repo.Name,
 			*event.CheckSuite.HeadSHA,
-			"checkers",
+			jobset,
 			responseStatus,
 		)
 		fmt.Printf("Status written on %s.", *event.CheckSuite.HeadSHA)
