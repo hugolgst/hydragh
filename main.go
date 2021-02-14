@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/go-github/v33/github"
 	"github.com/gorilla/mux"
-	botGithub "github.com/hugolgst/github-hydra-bot/github"
+	"github.com/hugolgst/github-hydra-bot/hydra"
 )
 
 // EventHandler handles the income of WebHook requests
@@ -31,17 +31,26 @@ func EventHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		err := hydra.TriggerJobset([]string{
+			"vinixos:checkers",
+		})
+		if err != nil {
+			fmt.Println("Hydra jobset cannot be triggered.")
+			return
+		}
+		fmt.Println("Jobsets triggered.")
+
 		// Get Client from the WebHook installation
-		client := botGithub.GetClientFromInstallationID(event.Installation.GetID())
-		// Write the status to the Repository retrieved from the Webhook
-		client.WriteStatus(
-			*event.Repo.Owner.Login,
-			*event.Repo.Name,
-			*event.CheckSuite.HeadSHA,
-			"jobname",
-			botGithub.SuccessStatus,
-		)
-		fmt.Printf("Status written on %s.", *event.CheckSuite.HeadSHA)
+		// client := botGithub.GetClientFromInstallationID(event.Installation.GetID())
+		// // Write the status to the Repository retrieved from the Webhook
+		// client.WriteStatus(
+		// 	*event.Repo.Owner.Login,
+		// 	*event.Repo.Name,
+		// 	*event.CheckSuite.HeadSHA,
+		// 	"jobname",
+		// 	botGithub.SuccessStatus,
+		// )
+		// fmt.Printf("Status written on %s.", *event.CheckSuite.HeadSHA)
 	}
 }
 
