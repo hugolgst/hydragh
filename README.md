@@ -1,5 +1,5 @@
 # hydragh
-An implementation of a GitHub bot to trigger and check Hydra's jobs
+An implementation of a GitHub bot to trigger and check [Hydra](https://github.com/NixOS/hydra)'s jobs
 
 ## Installation
 TODO
