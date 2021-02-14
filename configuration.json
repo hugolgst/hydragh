@@ -1,5 +1,7 @@
 {
-  "url": "http://localhost:3000",
+  "hydraURL": "http://localhost:3000",
+  "appID": 99645,
+  "certificatePath": "/home/hl/Downloads/hydra-github-bot.2021-02-08.private-key.pem",
   "project": "test",
   "jobs": [
     {

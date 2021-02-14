@@ -2,16 +2,15 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/github"
+	"github.com/hugolgst/github-hydra-bot/configuration"
 )
 
 var (
-	appID    = int64(99645)
-	certPath = "/home/hl/Downloads/hydra-github-bot.2021-02-08.private-key.pem"
-
 	SuccessStatus = Status{
 		Name:        "success",
 		Description: "All the jobs were successful.",
@@ -44,6 +43,9 @@ type Status struct {
 // WriteStatus creates a new status via the provided client on a specific commit of a client's repository
 // The description is automatically written and the target URL is hard-coded.
 func (botClient BotClient) WriteStatus(owner, repo, rev, jobName string, status Status) {
+	config := configuration.Configuration
+	targetURL := fmt.Sprintf("%s/jobset/%s/%s", config.HydraURL, config.Project, jobName)
+
 	botClient.Client.Repositories.CreateStatus(
 		context.TODO(),
 		owner,
@@ -52,7 +54,7 @@ func (botClient BotClient) WriteStatus(owner, repo, rev, jobName string, status 
 		&github.RepoStatus{
 			State:       String(status.Name),
 			Description: String(status.Description),
-			TargetURL:   String("https://hydra.visium.ch"),
+			TargetURL:   String(targetURL),
 			Context:     String(jobName),
 		},
 	)
@@ -60,7 +62,11 @@ func (botClient BotClient) WriteStatus(owner, repo, rev, jobName string, status 
 
 // GetClientFromInstallationID returns the GitHub Client object from the Installation ID
 func GetClientFromInstallationID(id int64) BotClient {
-	appsTransport, err := ghinstallation.NewAppsTransportKeyFromFile(http.DefaultTransport, appID, certPath)
+	appsTransport, err := ghinstallation.NewAppsTransportKeyFromFile(
+		http.DefaultTransport,
+		int64(configuration.Configuration.AppID),
+		configuration.Configuration.CertificatePath,
+	)
 	if err != nil {
 		panic("Error creating GitHub App client")
 	}

@@ -4,12 +4,75 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/google/go-github/v33/github"
 	"github.com/gorilla/mux"
+	"github.com/hugolgst/github-hydra-bot/configuration"
 	botGithub "github.com/hugolgst/github-hydra-bot/github"
 	"github.com/hugolgst/github-hydra-bot/hydra"
 )
+
+func writeFailureStatus(client botGithub.BotClient, event github.CheckSuiteEvent, name string) {
+	client.WriteStatus(
+		*event.Repo.Owner.Login,
+		*event.Repo.Name,
+		*event.CheckSuite.HeadSHA,
+		name,
+		botGithub.FailureStatus,
+	)
+}
+
+func handleCheckSuite(event github.CheckSuiteEvent, job configuration.Job) {
+	// Get Client from the WebHook installation
+	client := botGithub.GetClientFromInstallationID(event.Installation.GetID())
+
+	// Write the pending status
+	jobset := fmt.Sprintf("%s-%s", job.Name, (*event.CheckSuite.HeadSHA)[0:6])
+	client.WriteStatus(
+		*event.Repo.Owner.Login,
+		*event.Repo.Name,
+		*event.CheckSuite.HeadSHA,
+		jobset,
+		botGithub.PendingStatus,
+	)
+
+	// Login into Hydra
+	cookie, err := hydra.Login(os.Getenv("HYDRA_USERNAME"), os.Getenv("HYDRA_PASSWORD"))
+	if err != nil {
+		fmt.Println(err)
+		writeFailureStatus(client, event, jobset)
+		return
+	}
+
+	// Create the Jobset
+	err = hydra.CreateJobset(configuration.Configuration.Project, jobset, cookie, hydra.Jobset{
+		Enabled:            1,
+		Visible:            1,
+		NixExpressionInput: "vinixos",
+		NixExpressionPath:  "hydra/overlay.nix",
+		JobsetInputs:       hydra.GenerateJobsetInputs(job.Inputs, *event.CheckSuite.HeadBranch),
+	})
+	if err != nil {
+		fmt.Println(err)
+		writeFailureStatus(client, event, jobset)
+		return
+	}
+
+	// Wait for the status to change
+	status := make(chan botGithub.Status)
+	go hydra.WaitForStatus(status, configuration.Configuration.Project, jobset)
+
+	responseStatus := <-status
+	client.WriteStatus(
+		*event.Repo.Owner.Login,
+		*event.Repo.Name,
+		*event.CheckSuite.HeadSHA,
+		jobset,
+		responseStatus,
+	)
+	fmt.Printf("Status written on %s.", *event.CheckSuite.HeadSHA)
+}
 
 // EventHandler handles the income of WebHook requests
 func EventHandler(w http.ResponseWriter, r *http.Request) {
@@ -32,71 +95,10 @@ func EventHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Get Client from the WebHook installation
-		client := botGithub.GetClientFromInstallationID(event.Installation.GetID())
-
-		// Write the pending status
-		jobset := fmt.Sprintf("checkers-%s", (*event.CheckSuite.HeadSHA)[0:6])
-		client.WriteStatus(
-			*event.Repo.Owner.Login,
-			*event.Repo.Name,
-			*event.CheckSuite.HeadSHA,
-			jobset,
-			botGithub.PendingStatus,
-		)
-
-		// Login into Hydra
-		cookie, err := hydra.Login("username", "password")
-		if err != nil {
-			fmt.Println(err)
-			client.WriteStatus(
-				*event.Repo.Owner.Login,
-				*event.Repo.Name,
-				*event.CheckSuite.HeadSHA,
-				jobset,
-				botGithub.FailureStatus,
-			)
-			return
+		// Handle the check suite for each registered job
+		for _, job := range configuration.Configuration.Jobs {
+			handleCheckSuite(*event, job)
 		}
-
-		// Create the Jobset
-		err = hydra.CreateJobset("test", jobset, cookie, hydra.Jobset{
-			Enabled:            1,
-			Visible:            1,
-			NixExpressionInput: "vinixos",
-			NixExpressionPath:  "hydra/overlay.nix",
-			JobsetInputs: map[string]hydra.JobsetInput{
-				"nixpkgs": hydra.JobsetInput{
-					Type:  "git",
-					Value: "git@github.com:NixOS/nixpkgs nixos-20.09",
-				},
-			},
-		})
-		if err != nil {
-			fmt.Println(err)
-			client.WriteStatus(
-				*event.Repo.Owner.Login,
-				*event.Repo.Name,
-				*event.CheckSuite.HeadSHA,
-				jobset,
-				botGithub.FailureStatus,
-			)
-			return
-		}
-
-		// Wait for the status to change
-		status := make(chan botGithub.Status)
-		go hydra.WaitForStatus(status, "test", jobset)
-
-		responseStatus := <-status
-		client.WriteStatus(
-			*event.Repo.Owner.Login,
-			*event.Repo.Name,
-			*event.CheckSuite.HeadSHA,
-			jobset,
-			responseStatus,
-		)
-		fmt.Printf("Status written on %s.", *event.CheckSuite.HeadSHA)
 	}
 }
 

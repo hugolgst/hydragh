@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/hugolgst/github-hydra-bot/configuration"
 )
 
 // TriggeredJobsetsResponse contains the response when triggering a jobset
@@ -29,6 +31,18 @@ type Jobset struct {
 type JobsetInput struct {
 	Type  string `json:"type"`
 	Value string `json:"value"`
+}
+
+// GenerateJobsetInputs returns the list of formatted inputs
+func GenerateJobsetInputs(inputs []configuration.Input, branchName string) (result map[string]JobsetInput) {
+	for _, input := range inputs {
+		result[input.Name] = JobsetInput{
+			Type:  input.Name,
+			Value: strings.Replace(input.Value, "${BRANCH_NAME}", branchName, 1),
+		}
+	}
+
+	return
 }
 
 // CreateJobset requests Hydra's API to create a jobset
