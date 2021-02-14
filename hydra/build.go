@@ -11,7 +11,7 @@ import (
 
 // BuildStatusResponse contains the status of the build
 type BuildStatusResponse struct {
-	BuildStatus int `json:"buildstatus`
+	BuildStatus int `json:"buildstatus"`
 }
 
 // ProcessBuildStatus returns a GitHub status for a set of build IDs
