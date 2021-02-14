@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/go-github/v33/github"
 	"github.com/gorilla/mux"
-	"github.com/hugolgst/github-hydra-bot/configuration"
-	botGithub "github.com/hugolgst/github-hydra-bot/github"
-	"github.com/hugolgst/github-hydra-bot/hydra"
+	"github.com/hugolgst/hydragh/configuration"
+	botGithub "github.com/hugolgst/hydragh/github"
+	"github.com/hugolgst/hydragh/hydra"
 )
 
 func writeFailureStatus(client botGithub.BotClient, event github.CheckSuiteEvent, name string) {

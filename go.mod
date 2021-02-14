@@ -1,4 +1,4 @@
-module github.com/hugolgst/github-hydra-bot
+module github.com/hugolgst/hydragh
 
 go 1.15
 

@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/hugolgst/github-hydra-bot/github"
+	"github.com/hugolgst/hydragh/github"
 )
 
 // BuildStatusResponse contains the status of the build

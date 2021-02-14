@@ -7,7 +7,7 @@ import (
 
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/github"
-	"github.com/hugolgst/github-hydra-bot/configuration"
+	"github.com/hugolgst/hydragh/configuration"
 )
 
 var (

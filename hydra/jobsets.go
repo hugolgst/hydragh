@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hugolgst/github-hydra-bot/configuration"
+	"github.com/hugolgst/hydragh/configuration"
 )
 
 // TriggeredJobsetsResponse contains the response when triggering a jobset

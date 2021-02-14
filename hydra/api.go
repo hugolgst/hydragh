@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hugolgst/github-hydra-bot/github"
+	"github.com/hugolgst/hydragh/github"
 )
 
 const apiURL = "http://localhost:3000"
