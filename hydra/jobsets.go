@@ -34,21 +34,24 @@ type JobsetInput struct {
 }
 
 // GenerateJobsetInputs returns the list of formatted inputs
-func GenerateJobsetInputs(inputs []configuration.Input, branchName string) (result map[string]JobsetInput) {
+func GenerateJobsetInputs(inputs []configuration.Input, branchName string) map[string]JobsetInput {
+	result := make(map[string]JobsetInput)
+
 	for _, input := range inputs {
 		result[input.Name] = JobsetInput{
-			Type:  input.Name,
+			Type:  input.Type,
 			Value: strings.Replace(input.Value, "${BRANCH_NAME}", branchName, 1),
 		}
 	}
 
-	return
+	return result
 }
 
 // CreateJobset requests Hydra's API to create a jobset
 func CreateJobset(project, jobset, cookie string, data Jobset) error {
 	url := fmt.Sprintf("%s/jobset/%s/%s", apiURL, project, jobset)
 	stringData, _ := json.Marshal(data)
+	fmt.Println(string(stringData))
 
 	request, err := http.NewRequest("PUT", url, bytes.NewBuffer(stringData))
 	if err != nil {
@@ -76,6 +79,7 @@ func CreateJobset(project, jobset, cookie string, data Jobset) error {
 	json.Unmarshal(body, &jsonResponse)
 
 	if jsonResponse["error"] != nil {
+		fmt.Println(string(body))
 		return errors.New("cannot create jobset")
 	}
 

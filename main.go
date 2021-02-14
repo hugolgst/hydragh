@@ -49,8 +49,8 @@ func handleCheckSuite(event github.CheckSuiteEvent, job configuration.Job) {
 	err = hydra.CreateJobset(configuration.Configuration.Project, jobset, cookie, hydra.Jobset{
 		Enabled:            1,
 		Visible:            1,
-		NixExpressionInput: "vinixos",
-		NixExpressionPath:  "hydra/overlay.nix",
+		NixExpressionInput: job.ExpressionInput,
+		NixExpressionPath:  job.ExpressionPath,
 		JobsetInputs:       hydra.GenerateJobsetInputs(job.Inputs, *event.CheckSuite.HeadBranch),
 	})
 	if err != nil {

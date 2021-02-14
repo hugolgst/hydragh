@@ -34,7 +34,7 @@ type Input struct {
 
 // GetConfiguration retrieves the configuration from the file and parse it
 func GetConfiguration() (configuration Data) {
-	data, err := ioutil.ReadFile("../configuration.json")
+	data, err := ioutil.ReadFile("./configuration.json")
 	if err != nil {
 		panic(err)
 	}
