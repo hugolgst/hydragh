@@ -16,7 +16,7 @@ type BuildStatusResponse struct {
 
 // ProcessBuildStatus returns a GitHub status for a set of build IDs
 func ProcessBuildStatus(builds []int) github.Status {
-	for build := range builds {
+	for _, build := range builds {
 		value, err := GetBuildStatus(build)
 		if err != nil {
 			return github.ErrorStatus

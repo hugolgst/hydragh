@@ -1,0 +1,23 @@
+{
+  "url": "http://localhost:3000",
+  "project": "test",
+  "jobs": [
+    {
+      "name": "checkers",
+      "expressionInput": "vinixos",
+      "expressionPath": "hydra/checkers.nix",
+      "inputs": [
+        {
+          "name": "nixpkgs",
+          "type": "git",
+          "value": "git@github.com:NixOS/nixpkgs nixos-20.09"
+        },
+        {
+          "name": "vinixos",
+          "type": "git",
+          "value": "git@github.com:VisiumCH/vinixos.git ${BRANCH_NAME}"
+        }
+      ]
+    }
+  ]
+}

@@ -13,11 +13,11 @@ func login() {
 
 }
 
-func WaitForStatus(statusChannel *chan github.Status, project, jobset string) {
+func WaitForStatus(statusChannel chan github.Status, project, jobset string) {
 	// Get the initial evaluations reply
 	initialResponse, err := GetEvaluations(project, jobset)
 	if err != nil {
-		*statusChannel <- github.ErrorStatus
+		statusChannel <- github.ErrorStatus
 		return
 	}
 	fmt.Println("Got the initial evaluations response.")
@@ -27,7 +27,7 @@ func WaitForStatus(statusChannel *chan github.Status, project, jobset string) {
 		fmt.Sprintf("%s:%s", project, jobset),
 	})
 	if err != nil {
-		*statusChannel <- github.ErrorStatus
+		statusChannel <- github.ErrorStatus
 		return
 	}
 	fmt.Println("Triggered the jobset.")
@@ -37,7 +37,7 @@ func WaitForStatus(statusChannel *chan github.Status, project, jobset string) {
 		// Process the new evaluation
 		response, err := GetEvaluations(project, jobset)
 		if err != nil {
-			*statusChannel <- github.ErrorStatus
+			statusChannel <- github.ErrorStatus
 			return
 		}
 
@@ -46,13 +46,13 @@ func WaitForStatus(statusChannel *chan github.Status, project, jobset string) {
 			fmt.Println("New evaluation found.")
 			latestEvaluation := response.Evaluations[len(response.Evaluations)-1]
 			status := ProcessBuildStatus(latestEvaluation.Builds)
-			fmt.Println(status)
-			*statusChannel <- status
+
+			statusChannel <- status
 			return
 		}
 
 		time.Sleep(5 * time.Second)
 	}
 
-	*statusChannel <- github.ErrorStatus
+	statusChannel <- github.ErrorStatus
 }

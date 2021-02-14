@@ -35,6 +35,7 @@ func EventHandler(w http.ResponseWriter, r *http.Request) {
 		// Get Client from the WebHook installation
 		client := botGithub.GetClientFromInstallationID(event.Installation.GetID())
 
+		// Write the pending status
 		jobset := fmt.Sprintf("checkers-%s", (*event.CheckSuite.HeadSHA)[0:6])
 		client.WriteStatus(
 			*event.Repo.Owner.Login,
@@ -44,33 +45,50 @@ func EventHandler(w http.ResponseWriter, r *http.Request) {
 			botGithub.PendingStatus,
 		)
 
-		hydra.CreateJobset("test", jobset, `{
-			"emailoverride" : "",
-			"enabled" : 1,
-			"errormsg" : "",
-			"fetcherrormsg" : null,
-			"jobsetinputs" : {
-					"nixpkgs" : {
-						"jobsetinputalts" : [
-								"git@github.com:NixOS/nixpkgs nixos-20.09"
-						]
-					},
-					"vinixos" : {
-						"jobsetinputalts" : [
-								"git@github.com:VisiumCH/vinixos.git main"
-						]
-					}
-			},
-			"nixexprinput" : "vinixos",
-			"nixexprpath" : "hydra/checkers.nix"
-		}`)
+		// Login into Hydra
+		cookie, err := hydra.Login("username", "password")
+		if err != nil {
+			fmt.Println(err)
+			client.WriteStatus(
+				*event.Repo.Owner.Login,
+				*event.Repo.Name,
+				*event.CheckSuite.HeadSHA,
+				jobset,
+				botGithub.FailureStatus,
+			)
+			return
+		}
 
+		// Create the Jobset
+		err = hydra.CreateJobset("test", jobset, cookie, hydra.Jobset{
+			Enabled:            1,
+			Visible:            1,
+			NixExpressionInput: "vinixos",
+			NixExpressionPath:  "hydra/overlay.nix",
+			JobsetInputs: map[string]hydra.JobsetInput{
+				"nixpkgs": hydra.JobsetInput{
+					Type:  "git",
+					Value: "git@github.com:NixOS/nixpkgs nixos-20.09",
+				},
+			},
+		})
+		if err != nil {
+			fmt.Println(err)
+			client.WriteStatus(
+				*event.Repo.Owner.Login,
+				*event.Repo.Name,
+				*event.CheckSuite.HeadSHA,
+				jobset,
+				botGithub.FailureStatus,
+			)
+			return
+		}
+
+		// Wait for the status to change
 		status := make(chan botGithub.Status)
-		hydra.WaitForStatus(&status, "test", jobset)
+		go hydra.WaitForStatus(status, "test", jobset)
 
 		responseStatus := <-status
-		fmt.Println(responseStatus)
-
 		client.WriteStatus(
 			*event.Repo.Owner.Login,
 			*event.Repo.Name,

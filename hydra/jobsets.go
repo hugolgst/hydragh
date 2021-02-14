@@ -19,14 +19,16 @@ type TriggeredJobsetsResponse struct {
 // Jobset describes the request sent to Hydra's API
 type Jobset struct {
 	Enabled            int                    `json:"enabled"`
+	Visible            int                    `json:"visible"`
 	NixExpressionInput string                 `json:"nixexprinput"`
 	NixExpressionPath  string                 `json:"nixexprpath"`
-	JobsetInputs       map[string]JobsetInput `json:"jobsetinputs"`
+	JobsetInputs       map[string]JobsetInput `json:"inputs"`
 }
 
 // JobsetInput is a list of "Git checkout" Hydra inputs
 type JobsetInput struct {
-	JobsetInputAlts []string `json:"jobsetinputalts"`
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }
 
 // CreateJobset requests Hydra's API to create a jobset
@@ -56,7 +58,12 @@ func CreateJobset(project, jobset, cookie string, data Jobset) error {
 		return err
 	}
 
-	fmt.Println(string(body))
+	var jsonResponse map[string]interface{}
+	json.Unmarshal(body, &jsonResponse)
+
+	if jsonResponse["error"] != nil {
+		return errors.New("cannot create jobset")
+	}
 
 	return nil
 }
