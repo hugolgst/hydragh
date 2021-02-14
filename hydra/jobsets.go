@@ -16,15 +16,30 @@ type TriggeredJobsetsResponse struct {
 	JobsetsTriggered []string `json:"jobsetsTriggered"`
 }
 
-// CreateJobset requests Hydra's API to create a jobset
-func CreateJobset(project, name, data string) error {
-	url := fmt.Sprintf("%s/jobset/%s/%s", apiURL, project, name)
+// Jobset describes the request sent to Hydra's API
+type Jobset struct {
+	Enabled            int                    `json:"enabled"`
+	NixExpressionInput string                 `json:"nixexprinput"`
+	NixExpressionPath  string                 `json:"nixexprpath"`
+	JobsetInputs       map[string]JobsetInput `json:"jobsetinputs"`
+}
 
-	request, err := http.NewRequest("PUT", url, bytes.NewBuffer([]byte(data)))
+// JobsetInput is a list of "Git checkout" Hydra inputs
+type JobsetInput struct {
+	JobsetInputAlts []string `json:"jobsetinputalts"`
+}
+
+// CreateJobset requests Hydra's API to create a jobset
+func CreateJobset(project, jobset, cookie string, data Jobset) error {
+	url := fmt.Sprintf("%s/jobset/%s/%s", apiURL, project, jobset)
+	stringData, _ := json.Marshal(data)
+
+	request, err := http.NewRequest("PUT", url, bytes.NewBuffer(stringData))
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Accept", "application/json")
+	request.Header.Set("Cookie", cookie)
 
 	// Send the HTTP request
 	client := &http.Client{}
